@@ -176,54 +176,95 @@ const logoutUser = async_handler(async(req, res) => {
 })
 
 const RefreshAccessToken = async_handler(async (req, res) => {
-    try {
-        const incomingRefreshToken= req.cookie.refreshToken || req.body.refreshToken
-    
-        if (!incomingRefreshToken) {
-            throw new ApiError(404, "Refresh token is required")
-        }
-    
-        const decodedToken =jwt.verify(
-            incomingRefreshToken,
-            process.env.REFRESH_TOKEN_SECRET
-        )
-    
-        const user = await User.findById(decodedToken?._id)
-    
-        if (!user ) {
-            throw new ApiError(404, "User not found")
-        }
-    
-        if (user.refreshToken !== incomingRefreshToken) {
-            throw new ApiError(404, "Invalid refresh token")
-        }
-        const options= {
-            httpOnly: true,
-            secure: true
-        }
-        const { accessToken, newrefreshToken } = await generateAccessAndRefereshTokens(user._id)
-    
-    } catch (error) {
-        throw new ApiError(500, "Something went wrong while refreshing access token")
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+
+    if (!incomingRefreshToken) {
+        throw new ApiError(400, "Refresh token is required");
     }
-   
+
+    const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const user = await User.findById(decodedToken?._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (user.refreshToken !== incomingRefreshToken) {
+        throw new ApiError(400, "Invalid refresh token");
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefereshTokens(user._id);
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    };
+
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", newRefreshToken, options)
+        .json(new ApiResponse(200, { accessToken, refreshToken: newRefreshToken }, "Access token refreshed successfully"));
+});
+
+const changeCurrentPassword = async_handler(async(req,res)=>{
+    const {currentPassword, newPassword } = req.body
+
+    if (!currentPassword || !newPassword) {
+        throw new ApiError(400, "Current password and new password are required");
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const ispasswordValid = await user.ispasswordCorrect(currentPassword);
+    if (!ispasswordValid) {
+        throw new ApiError(401, "Invalid credentials");
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return res.status(200).json(new ApiResponse(200, {}, "Password changed successfully"));
+})
+
+const getCurrentUser = async_handler(async (req,res)=>{
     return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", newrefreshToken, options)
-    .json(
-        new ApiResponse(200, {
-            accessToken,
-            refreshToken: newrefreshToken
-        }, "Access token refreshed successfully")
-    
+    .json("200", res.user ,"current user is here ")
+})
+
+const updateUserAccount = async_handler(async(req,res)=>{
+    const {email,fullName,newemail,newfullName}= req.body
+
+    if (!(email || fullName)) {
+        return ApiError (400,"email or id req")
+    }
+
+    const user = User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                fullName : newfullName,
+                email : newemail
+            }
+        }
+
     )
-});
+
+
+})
 
 
 export {
     registerUser,
     loginUser,
     logoutUser,
-    RefreshAccessToken
+    RefreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateUserAccount
 };
