@@ -286,7 +286,40 @@ const avatarUpdata = async_handler(async(req,res)=>{
         },
         {new: true}
     )
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, user, "Avatar image updated successfully")
+    )
+})
 
+const coverImageUpdate = async_handler(async(req,res)=>{
+    const coverImageLocalPath = req.file?.path
+
+    if (!coverImageLocalPath) {
+        throw ApiError(400,"avatar image is not found")
+    }
+
+    const newupload = await uploadFileCloudinary(coverImageLocalPath)
+
+    if (!newupload.url){
+        throw ApiError (400 ,"image is not upload")
+    }
+
+    const user = User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                newupload : newupload.url
+            }
+        },
+        {new: true}
+    )
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, user, "cover image updated successfully")
+    )
 })
 
 
@@ -297,5 +330,7 @@ export {
     RefreshAccessToken,
     changeCurrentPassword,
     getCurrentUser,
-    updateUserAccount  
+    updateUserAccount ,
+    avatarUpdata,
+    coverImageUpdate
 };
