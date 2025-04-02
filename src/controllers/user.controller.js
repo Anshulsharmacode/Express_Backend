@@ -238,7 +238,7 @@ const getCurrentUser = async_handler(async (req,res)=>{
 })
 
 const updateUserAccount = async_handler(async(req,res)=>{
-    const {email,fullName,newemail,newfullName}= req.body
+    const {email,fullName}= req.body
 
     if (!(email || fullName)) {
         return ApiError (400,"email or id req")
@@ -248,13 +248,44 @@ const updateUserAccount = async_handler(async(req,res)=>{
         req.user?._id,
         {
             $set:{
-                fullName : newfullName,
-                email : newemail
-            }
-        }
+                fullName,
+                email 
+            }.select("-password")
+        },
+        {new: true}
 
     )
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200 , user,"update account ")
+    )
 
+
+})
+
+const avatarUpdata = async_handler(async(req,res)=>{
+    const avatarLocalPath = req.file?.path
+
+    if (!avatarLocalPath) {
+        throw ApiError(400,"avatar image is not found")
+    }
+
+    const newupload = await uploadFileCloudinary(avatarLocalPath)
+
+    if (!newupload.url){
+        throw ApiError (400 ,"image is not upload")
+    }
+
+    const user = User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                newupload : newupload.url
+            }
+        },
+        {new: true}
+    )
 
 })
 
@@ -266,5 +297,5 @@ export {
     RefreshAccessToken,
     changeCurrentPassword,
     getCurrentUser,
-    updateUserAccount
+    updateUserAccount  
 };
