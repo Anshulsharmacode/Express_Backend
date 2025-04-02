@@ -2,11 +2,13 @@ import express from "express";  // Import Express
 import connectDB from "./db/index.js";
 import dotenv from "dotenv";
 
+import app from "./app.js";  // Import the Express app
+
 dotenv.config({
     path: "./env"    
 });
 
-const app = express();  // Initialize Express App
+// const app = express();  // Initialize Express App
 
 connectDB()
     .then(() => {
@@ -18,3 +20,12 @@ connectDB()
         console.error(error);
         console.log("Server is not running");
     });
+
+
+// app.use(cors({
+//     origin: process.env.CORS_ORIGIN,  // Fixed typo
+//     credentials: true
+// }));
+
+
+// app.get;
