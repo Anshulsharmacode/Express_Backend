@@ -264,7 +264,7 @@ const updateUserAccount = async_handler(async(req,res)=>{
 
 })
 
-const avatarUpdata = async_handler(async(req,res)=>{
+const avatarUpdate = async_handler(async(req,res)=>{
     const avatarLocalPath = req.file?.path
 
     if (!avatarLocalPath) {
@@ -285,7 +285,7 @@ const avatarUpdata = async_handler(async(req,res)=>{
             }
         },
         {new: true}
-    )
+    ).select("-password")
     return res
     .status(200)
     .json(
@@ -314,7 +314,7 @@ const coverImageUpdate = async_handler(async(req,res)=>{
             }
         },
         {new: true}
-    )
+    ).select("-password")
     return res
     .status(200)
     .json(
@@ -322,6 +322,126 @@ const coverImageUpdate = async_handler(async(req,res)=>{
     )
 })
 
+const getUserChannelProfile = async_handler(async(req,res)=>{
+    const {userName}= req.params
+
+    if (!userName) {
+        throw ApiError(400,"user name is not found")
+    }
+//pipe line 
+    const channel = await User.aggregate([
+        {
+            $match:{
+                userName:userName?.toLowerCase()
+            }
+
+        },{
+            $lookup:{
+                from :"subscriptions",
+                localField : "_id",
+                foreignField: "channel",
+                as: "subcriber"
+            }
+
+        },{
+            $lookup:{
+                from :"subscriptions",
+                localField : "_id",
+                foreignField: "subcriber",
+                as: "subcribeTo"
+            }
+        },{
+            $addFields:{
+                subscriberCount :{
+                    $size :subcriber
+                },
+                subscriberTo :{
+                    $size :subcribeTo
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {$in: [req.user?._id, "$subscriptions.subcriber"]},
+                        then: true,
+                        else: false
+                    }
+                
+            }   }
+        },{
+            $project:{
+                fullName:1,
+                avatar:1,
+                coverImage:1,
+                subcribeTo:1,
+                subcriber:1,
+                subscriberCount:1,
+                email :1,
+
+            }
+        }
+    ])
+    if (!channel?.length) {
+        throw ApiError (200,"channel data does not exits ")
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, channel[0], "data featched successfully")
+    )
+
+});
+
+const getWatchHistory = async_handler(async(req, res) => {
+    const user = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup: {
+                from: "Video",
+                localField: "WatchHistory",
+                foreignField: "_id",
+                as: "WatchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user[0].watchHistory,
+            "Watch history fetched successfully"
+        )
+    )
+})
 
 export {
     registerUser,
@@ -331,6 +451,8 @@ export {
     changeCurrentPassword,
     getCurrentUser,
     updateUserAccount ,
-    avatarUpdata,
-    coverImageUpdate
+    avatarUpdate,
+    coverImageUpdate,
+    getUserChannelProfile,
+    getWatchHistory
 };
