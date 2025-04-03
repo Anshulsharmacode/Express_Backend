@@ -4,6 +4,9 @@ import async_handler from "../utills/async_handler.js";
 import uploadFileCloudinary from "../utills/Cloudanary.js";
 import ApiResponse from "../utills/ApiResponse.js";
 import jwt from "jsonwebtoken"
+import generateRefreshToken from "../models/user.model.js"
+import generateAccessToken from "../models/user.model.js"
+
 // import generateAccessAndRefereshTokens from "../controllers/Access.js"
 
 
@@ -89,9 +92,11 @@ const generateAccessAndRefereshTokens = async (userId) => {
             throw new ApiError(404, "User not found");
         }
 
+        // Use instance methods to generate tokens
         const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
 
+        // Save the refresh token in the database
         user.refreshToken = refreshToken;
         await user.save({ validateBeforeSave: false });
 
@@ -175,7 +180,7 @@ const logoutUser = async_handler(async(req, res) => {
     .json(new ApiResponse(200, {}, "User logged Out"))
 })
 
-const RefreshAccessToken = async_handler(async (req, res) => {
+const refreshAccessToken = async_handler(async (req, res) => {
     const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken;
 
     if (!incomingRefreshToken) {
@@ -447,7 +452,7 @@ export {
     registerUser,
     loginUser,
     logoutUser,
-    RefreshAccessToken,
+    refreshAccessToken,
     changeCurrentPassword,
     getCurrentUser,
     updateUserAccount ,
