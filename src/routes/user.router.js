@@ -46,7 +46,7 @@ userRouter.route("/update-account").patch(verifyToken, updateUserAccount);
 userRouter.route("/avatar").patch(verifyToken, upload.single("avatar"), avatarUpdate);
 userRouter.route("/cover-image").patch(verifyToken, upload.single("coverImage"), coverImageUpdate);
 
-userRouter.route("/c/:username").get(verifyToken, getUserChannelProfile);
+userRouter.route("/c/:userName").get(verifyToken, getUserChannelProfile);
 userRouter.route("/history").get(verifyToken, getWatchHistory);
 
 export default userRouter;

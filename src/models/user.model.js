@@ -61,7 +61,9 @@ userSchema.methods.generateAccessToken = function () {
     return jwt.sign(
         { _id: this._id, email: this.email },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "15m" } // Access token expires in 15 minutes
+        { expiresIn: "15h" } // Access token expires in 15 minutes
+
+        
     );
 };
 
